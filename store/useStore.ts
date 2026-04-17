@@ -9,6 +9,15 @@ import {
   RewardCategory,
 } from '@/types';
 
+// React Native compatible UUID generator
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 interface StoreState {
   // Transactions
   transactions: Transaction[];
@@ -53,7 +62,7 @@ interface StoreState {
 // Mock Data
 const mockTransactions: Transaction[] = [
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     amount: 12.50,
     pointsEarned: 19,
@@ -69,7 +78,7 @@ const mockTransactions: Transaction[] = [
     receiptNumber: 'BR-2024-001847',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     amount: 8.75,
     pointsEarned: 13,
@@ -84,7 +93,7 @@ const mockTransactions: Transaction[] = [
     receiptNumber: 'BR-2024-001832',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     amount: 15.25,
     pointsEarned: 23,
@@ -99,7 +108,7 @@ const mockTransactions: Transaction[] = [
     receiptNumber: 'BR-2024-001798',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     amount: 6.50,
     pointsEarned: 10,
@@ -113,7 +122,7 @@ const mockTransactions: Transaction[] = [
     receiptNumber: 'BR-2024-001654',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     amount: 22.00,
     pointsEarned: 33,
@@ -131,7 +140,7 @@ const mockTransactions: Transaction[] = [
 
 const mockRewards: Reward[] = [
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Free Coffee',
     description: 'Any handcrafted beverage of your choice, any size. Perfect for trying something new or enjoying your favorite.',
     pointsRequired: 150,
@@ -142,7 +151,7 @@ const mockRewards: Reward[] = [
     terms: ['Valid at participating locations', 'One per transaction', 'Cannot be combined with other offers'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Free Pastry',
     description: 'Choose any delicious pastry from our bakery case. From croissants to muffins, the choice is yours.',
     pointsRequired: 100,
@@ -153,7 +162,7 @@ const mockRewards: Reward[] = [
     terms: ['Valid at participating locations', 'Subject to availability'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Premium Tumbler',
     description: 'Exclusive Brew Rewards branded stainless steel tumbler. Keeps drinks hot for 12 hours, cold for 24.',
     pointsRequired: 500,
@@ -164,7 +173,7 @@ const mockRewards: Reward[] = [
     terms: ['While supplies last', 'In-store pickup only'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Coffee Tasting Experience',
     description: 'Exclusive guided tasting of rare single-origin coffees with our master barista. Learn brewing techniques.',
     pointsRequired: 750,
@@ -175,7 +184,7 @@ const mockRewards: Reward[] = [
     terms: ['Reservation required', 'Limited to 8 guests per session', 'Ages 18+'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Breakfast Combo',
     description: 'Start your day right with a handcrafted drink and breakfast sandwich of your choice.',
     pointsRequired: 250,
@@ -186,7 +195,7 @@ const mockRewards: Reward[] = [
     terms: ['Valid before 11 AM', 'Includes any size drink'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Double Points Day',
     description: 'Earn 2x points on your next purchase. Stack with your tier multiplier for maximum rewards!',
     pointsRequired: 200,
@@ -197,7 +206,7 @@ const mockRewards: Reward[] = [
     terms: ['Valid for one transaction', 'Cannot be combined with other multipliers'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Brew Rewards Tote Bag',
     description: 'Eco-friendly canvas tote with the Brew Rewards logo. Perfect for carrying your coffee essentials.',
     pointsRequired: 300,
@@ -208,7 +217,7 @@ const mockRewards: Reward[] = [
     terms: ['While supplies last', 'In-store pickup only'],
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: 'Barista for a Day',
     description: 'Go behind the counter and learn to make drinks like a pro! Includes certificate and free drinks.',
     pointsRequired: 1000,
@@ -222,7 +231,7 @@ const mockRewards: Reward[] = [
 
 const mockOffers: Offer[] = [
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Happy Hour Special',
     description: '50% off any iced drink between 2-5 PM',
     image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400',
@@ -231,7 +240,7 @@ const mockOffers: Offer[] = [
     code: 'HAPPYHOUR50',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Gold Member Exclusive',
     description: 'Free extra shot with any espresso drink',
     image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400',
@@ -240,7 +249,7 @@ const mockOffers: Offer[] = [
     code: 'GOLDSHOT',
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Weekend Brunch Deal',
     description: 'Buy any breakfast item, get a medium coffee free',
     image: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=400',
@@ -252,7 +261,7 @@ const mockOffers: Offer[] = [
 
 const mockNotifications: Notification[] = [
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Points Earned! ☕',
     message: 'You earned 19 points from your recent purchase',
     type: 'points',
@@ -260,7 +269,7 @@ const mockNotifications: Notification[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 30),
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'New Reward Available! 🎁',
     message: 'You have enough points to redeem a free coffee',
     type: 'reward',
@@ -268,7 +277,7 @@ const mockNotifications: Notification[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Happy Hour Starts Soon! ⏰',
     message: '50% off iced drinks from 2-5 PM today',
     type: 'offer',
@@ -276,7 +285,7 @@ const mockNotifications: Notification[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title: 'Welcome to Gold Tier! 🌟',
     message: 'Congratulations! You now earn 1.5x points on every purchase',
     type: 'general',
@@ -287,7 +296,7 @@ const mockNotifications: Notification[] = [
 
 const mockPaymentMethods: PaymentMethod[] = [
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     cardLast4: '4242',
     type: 'visa',
@@ -296,7 +305,7 @@ const mockPaymentMethods: PaymentMethod[] = [
     expiryYear: 2026,
   },
   {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     userId: '1',
     cardLast4: '8888',
     type: 'mastercard',
@@ -342,7 +351,7 @@ export const useStore = create<StoreState>((set, get) => ({
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const redemption: Redemption = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       userId,
       rewardId,
       reward,
@@ -366,7 +375,7 @@ export const useStore = create<StoreState>((set, get) => ({
   
   addPaymentMethod: async (method) => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const newMethod: PaymentMethod = { ...method, id: crypto.randomUUID() };
+    const newMethod: PaymentMethod = { ...method, id: generateUUID() };
     set(state => ({
       paymentMethods: [...state.paymentMethods, newMethod],
     }));
@@ -418,7 +427,7 @@ export const useStore = create<StoreState>((set, get) => ({
       type: 'brew_rewards_payment',
       userId,
       timestamp: Date.now(),
-      nonce: crypto.randomUUID(),
+      nonce: generateUUID(),
     });
     set({ qrCodeData: data });
   },
@@ -430,13 +439,13 @@ export const useStore = create<StoreState>((set, get) => ({
     const pointsEarned = Math.floor(amount * 1.5); // Gold tier multiplier
     
     const transaction: Transaction = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       userId,
       amount,
       pointsEarned,
       date: new Date(),
       itemsPurchased: [
-        { id: crypto.randomUUID(), name: 'In-Store Purchase', quantity: 1, price: amount },
+        { id: generateUUID(), name: 'In-Store Purchase', quantity: 1, price: amount },
       ],
       status: 'completed',
       storeName: 'Brew Rewards - Downtown',

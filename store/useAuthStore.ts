@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { User, TierName } from '@/types';
 
+// React Native compatible UUID generator
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -23,7 +32,7 @@ interface SignupData {
 }
 
 const mockUser: User = {
-  id: crypto.randomUUID(),
+  id: generateUUID(),
   phoneNumber: '+1 (555) 123-4567',
   email: 'sarah.johnson@email.com',
   name: 'Sarah Johnson',
@@ -102,7 +111,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const newUser: User = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         phoneNumber: data.phoneNumber,
         email: data.email,
         name: data.name,
