@@ -172,64 +172,70 @@ export default function OrdersScreen() {
             </View>
           ) : filteredOrders.length > 0 ? (
             <View style={styles.ordersList}>
-              {filteredOrders.map((order) => (
-                <Pressable
-                  key={order.id}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(`/order-detail/${order.id}`);
-                  }}
-                >
-                  <Card variant="default" style={styles.orderCard}>
-                    <View style={styles.orderHeader}>
-                      <View style={styles.orderInfo}>
-                        <Text style={[styles.orderNumber, { color: colors.text }]}>
-                          Order #{order.orderNumber}
-                        </Text>
-                        <Text style={[styles.orderDate, { color: colors.textMuted }]}>
-                          {formatOrderDate(order.createdAt)}
-                        </Text>
-                      </View>
-                      <Badge
-                        label={getOrderStatusLabel(order.status)}
-                        variant={order.status === 'ready' ? 'success' : order.status === 'preparing' ? 'warning' : 'default'}
-                      />
-                    </View>
-
-                    <View style={[styles.orderDivider, { backgroundColor: colors.border }]} />
-
-                    <View style={styles.orderItems}>
-                      {order.items.slice(0, 2).map((item, index) => (
-                        <View key={index} style={styles.orderItem}>
-                          <Text style={[styles.itemQuantity, { color: colors.textMuted }]}>
-                            {item.quantity}x
+              {filteredOrders.map((order) => {
+                // Defensive check: ensure items array exists
+                const items = order.items || [];
+                const itemCount = items.length;
+                
+                return (
+                  <Pressable
+                    key={order.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push(`/order-detail/${order.id}`);
+                    }}
+                  >
+                    <Card variant="default" style={styles.orderCard}>
+                      <View style={styles.orderHeader}>
+                        <View style={styles.orderInfo}>
+                          <Text style={[styles.orderNumber, { color: colors.text }]}>
+                            Order #{order.orderNumber}
                           </Text>
-                          <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>
-                            {item.name}
+                          <Text style={[styles.orderDate, { color: colors.textMuted }]}>
+                            {formatOrderDate(order.createdAt)}
                           </Text>
                         </View>
-                      ))}
-                      {order.items.length > 2 && (
-                        <Text style={[styles.moreItems, { color: colors.textMuted }]}>
-                          +{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}
-                        </Text>
-                      )}
-                    </View>
+                        <Badge
+                          label={getOrderStatusLabel(order.status)}
+                          variant={order.status === 'ready' ? 'success' : order.status === 'preparing' ? 'warning' : 'default'}
+                        />
+                      </View>
 
-                    <View style={styles.orderFooter}>
-                      <View style={styles.storeInfo}>
-                        <Ionicons name="location" size={14} color={colors.textMuted} />
-                        <Text style={[styles.storeName, { color: colors.textSecondary }]} numberOfLines={1}>
-                          {order.storeName}
+                      <View style={[styles.orderDivider, { backgroundColor: colors.border }]} />
+
+                      <View style={styles.orderItems}>
+                        {items.slice(0, 2).map((item, index) => (
+                          <View key={index} style={styles.orderItem}>
+                            <Text style={[styles.itemQuantity, { color: colors.textMuted }]}>
+                              {item.quantity}x
+                            </Text>
+                            <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                          </View>
+                        ))}
+                        {itemCount > 2 && (
+                          <Text style={[styles.moreItems, { color: colors.textMuted }]}>
+                            +{itemCount - 2} more item{itemCount - 2 > 1 ? 's' : ''}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View style={styles.orderFooter}>
+                        <View style={styles.storeInfo}>
+                          <Ionicons name="location" size={14} color={colors.textMuted} />
+                          <Text style={[styles.storeName, { color: colors.textSecondary }]} numberOfLines={1}>
+                            {order.storeName}
+                          </Text>
+                        </View>
+                        <Text style={[styles.orderTotal, { color: colors.text }]}>
+                          ${order.total.toFixed(2)}
                         </Text>
                       </View>
-                      <Text style={[styles.orderTotal, { color: colors.text }]}>
-                        ${order.total.toFixed(2)}
-                      </Text>
-                    </View>
-                  </Card>
-                </Pressable>
-              ))}
+                    </Card>
+                  </Pressable>
+                );
+              })}
             </View>
           ) : (
             <View style={styles.emptyState}>

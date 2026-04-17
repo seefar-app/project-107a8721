@@ -123,6 +123,9 @@ export default function OrderDetailScreen() {
 
   const canCancelOrder = order.status === 'preparing';
 
+  // Defensive check: ensure items array exists
+  const items = order.items || [];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -159,42 +162,48 @@ export default function OrderDetailScreen() {
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Order Items</Text>
             <Card variant="default" padding="none">
-              {order.items.map((item, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.itemRow,
-                    index !== order.items.length - 1 && {
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    },
-                  ]}
-                >
-                  {item.image && (
-                    <Image
-                      source={{ uri: item.image }}
-                      style={styles.itemImage}
-                      contentFit="cover"
-                    />
-                  )}
-                  <View style={styles.itemInfo}>
-                    <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
-                    {item.customizations && item.customizations.length > 0 && (
-                      <Text style={[styles.itemCustomizations, { color: colors.textMuted }]}>
-                        {item.customizations.join(', ')}
-                      </Text>
+              {items.length > 0 ? (
+                items.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.itemRow,
+                      index !== items.length - 1 && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      },
+                    ]}
+                  >
+                    {item.image && (
+                      <Image
+                        source={{ uri: item.image }}
+                        style={styles.itemImage}
+                        contentFit="cover"
+                      />
                     )}
+                    <View style={styles.itemInfo}>
+                      <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
+                      {item.customizations && item.customizations.length > 0 && (
+                        <Text style={[styles.itemCustomizations, { color: colors.textMuted }]}>
+                          {item.customizations.join(', ')}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.itemPricing}>
+                      <Text style={[styles.itemQuantity, { color: colors.textMuted }]}>
+                        x{item.quantity}
+                      </Text>
+                      <Text style={[styles.itemPrice, { color: colors.text }]}>
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.itemPricing}>
-                    <Text style={[styles.itemQuantity, { color: colors.textMuted }]}>
-                      x{item.quantity}
-                    </Text>
-                    <Text style={[styles.itemPrice, { color: colors.text }]}>
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </Text>
-                  </View>
+                ))
+              ) : (
+                <View style={styles.itemRow}>
+                  <Text style={[styles.itemName, { color: colors.textMuted }]}>No items in this order</Text>
                 </View>
-              ))}
+              )}
             </Card>
           </View>
 

@@ -6,7 +6,8 @@ import {
   PaymentMethod, 
   Offer,
   Notification,
-  RewardCategory,
+  Order,
+  OrderItem,
 } from '@/types';
 
 // React Native compatible UUID generator
@@ -51,6 +52,13 @@ interface StoreState {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   
+  // Orders
+  orders: Order[];
+  isLoadingOrders: boolean;
+  fetchOrders: () => Promise<void>;
+  getOrderById: (id: string) => Order | undefined;
+  cancelOrder: (id: string) => Promise<void>;
+  
   // QR Code
   qrCodeData: string | null;
   generateQRCode: (userId: string) => void;
@@ -58,6 +66,148 @@ interface StoreState {
   // Processing payment
   processPayment: (amount: number, userId: string) => Promise<Transaction | null>;
 }
+
+// Mock Order Data
+const mockOrders: Order[] = [
+  {
+    id: generateUUID(),
+    userId: '1',
+    orderNumber: 'ORD-2024-001',
+    items: [
+      {
+        id: generateUUID(),
+        name: 'Caramel Macchiato',
+        quantity: 2,
+        price: 5.50,
+        image: 'https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=200',
+        customizations: ['Extra shot', 'Oat milk'],
+      },
+      {
+        id: generateUUID(),
+        name: 'Blueberry Muffin',
+        quantity: 1,
+        price: 4.00,
+        image: 'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=200',
+      },
+    ],
+    subtotal: 15.00,
+    tax: 1.20,
+    discount: 0,
+    total: 16.20,
+    status: 'preparing',
+    createdAt: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
+    storeName: 'Brew Rewards - Downtown',
+    storeAddress: '123 Main Street',
+    estimatedReadyTime: new Date(Date.now() + 1000 * 60 * 10), // 10 mins from now
+  },
+  {
+    id: generateUUID(),
+    userId: '1',
+    orderNumber: 'ORD-2024-002',
+    items: [
+      {
+        id: generateUUID(),
+        name: 'Cold Brew',
+        quantity: 1,
+        price: 4.75,
+        image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=200',
+      },
+      {
+        id: generateUUID(),
+        name: 'Avocado Toast',
+        quantity: 1,
+        price: 6.50,
+        image: 'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=200',
+        customizations: ['Extra avocado', 'No tomatoes'],
+      },
+      {
+        id: generateUUID(),
+        name: 'Chocolate Chip Cookie',
+        quantity: 2,
+        price: 2.00,
+      },
+    ],
+    subtotal: 15.25,
+    tax: 1.22,
+    discount: 2.00,
+    total: 14.47,
+    status: 'ready',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
+    storeName: 'Brew Rewards - Uptown',
+    storeAddress: '456 Oak Avenue',
+  },
+  {
+    id: generateUUID(),
+    userId: '1',
+    orderNumber: 'ORD-2024-003',
+    items: [
+      {
+        id: generateUUID(),
+        name: 'Vanilla Latte',
+        quantity: 1,
+        price: 5.50,
+        image: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=200',
+      },
+    ],
+    subtotal: 5.50,
+    tax: 0.44,
+    discount: 0,
+    total: 5.94,
+    status: 'completed',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+    storeName: 'Brew Rewards - Downtown',
+    storeAddress: '123 Main Street',
+  },
+  {
+    id: generateUUID(),
+    userId: '1',
+    orderNumber: 'ORD-2024-004',
+    items: [
+      {
+        id: generateUUID(),
+        name: 'Iced Mocha',
+        quantity: 2,
+        price: 6.00,
+        image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=200',
+      },
+      {
+        id: generateUUID(),
+        name: 'Croissant',
+        quantity: 2,
+        price: 3.50,
+      },
+    ],
+    subtotal: 19.00,
+    tax: 1.52,
+    discount: 0,
+    total: 20.52,
+    status: 'completed',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
+    storeName: 'Brew Rewards - Mall',
+    storeAddress: '321 Shopping Center Dr',
+  },
+  {
+    id: generateUUID(),
+    userId: '1',
+    orderNumber: 'ORD-2024-005',
+    items: [
+      {
+        id: generateUUID(),
+        name: 'Espresso',
+        quantity: 1,
+        price: 3.25,
+      },
+    ],
+    subtotal: 3.25,
+    tax: 0.26,
+    discount: 0,
+    total: 3.51,
+    status: 'cancelled',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
+    storeName: 'Brew Rewards - Airport',
+    storeAddress: '789 Terminal B',
+  },
+];
 
 // Mock Data
 const mockTransactions: Transaction[] = [
@@ -416,6 +566,29 @@ export const useStore = create<StoreState>((set, get) => ({
     set(state => ({
       notifications: state.notifications.map(n => ({ ...n, read: true })),
       unreadCount: 0,
+    }));
+  },
+
+  // Orders
+  orders: [],
+  isLoadingOrders: false,
+  
+  fetchOrders: async () => {
+    set({ isLoadingOrders: true });
+    await new Promise(resolve => setTimeout(resolve, 800));
+    set({ orders: mockOrders, isLoadingOrders: false });
+  },
+  
+  getOrderById: (id: string) => {
+    return get().orders.find(o => o.id === id);
+  },
+  
+  cancelOrder: async (id: string) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    set(state => ({
+      orders: state.orders.map(o =>
+        o.id === id ? { ...o, status: 'cancelled' as const } : o
+      ),
     }));
   },
 
