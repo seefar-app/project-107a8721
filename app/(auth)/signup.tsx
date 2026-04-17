@@ -94,16 +94,61 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
+    // Clear any previous errors
+    setLocalError(null);
+    clearError();
+
+    // Validate all fields are filled
+    if (!name.trim()) {
+      setLocalError('Please enter your full name');
+      return;
+    }
+
+    if (!email.trim()) {
+      setLocalError('Please enter your email address');
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      setLocalError('Please enter a valid email address');
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      setLocalError('Please enter your phone number');
+      return;
+    }
+
+    const cleanedPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanedPhone.length < 11) {
+      setLocalError('Please enter a complete phone number');
+      return;
+    }
+
+    if (!pin.trim() || pin.length !== 4) {
+      setLocalError('Please enter a 4-digit PIN');
+      return;
+    }
+
+    if (!confirmPin.trim() || confirmPin.length !== 4) {
+      setLocalError('Please confirm your PIN');
+      return;
+    }
+
     if (pin !== confirmPin) {
       setLocalError('PINs do not match');
       return;
     }
 
+    // Convert 4-digit PIN to a password format that meets Supabase requirements (min 6 chars)
+    // We'll use the PIN twice to create a 8-character password
+    const password = `${pin}${pin}`;
+
     const success = await signup({
-      name,
-      email,
-      phoneNumber,
-      pin,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phoneNumber: phoneNumber.trim(),
+      password: password,
     });
 
     if (success) {
@@ -153,6 +198,7 @@ export default function SignupScreen() {
               onChangeText={(text) => {
                 setName(text);
                 setLocalError(null);
+                if (authError) clearError();
               }}
               autoCapitalize="words"
               leftIcon="person-outline"
@@ -166,6 +212,7 @@ export default function SignupScreen() {
               onChangeText={(text) => {
                 setEmail(text);
                 setLocalError(null);
+                if (authError) clearError();
               }}
               keyboardType="email-address"
               autoCapitalize="none"
