@@ -15,7 +15,7 @@ import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 import { useStore } from '@/store/useStore';
 import { useColors } from '@/hooks/useThemeColor';
 import { TransactionItem } from '@/components/shared/TransactionItem';
-import { SkeletonListItem } from '@/components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
 import { Transaction } from '@/types';
 
@@ -172,11 +172,11 @@ export default function HistoryScreen() {
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {isLoadingTransactions ? (
             <View style={styles.transactionsList}>
-              <SkeletonListItem />
-              <SkeletonListItem />
-              <SkeletonListItem />
-              <SkeletonListItem />
-              <SkeletonListItem />
+              <Skeleton width="100%" height={80} style={{ marginBottom: 8 }} />
+              <Skeleton width="100%" height={80} style={{ marginBottom: 8 }} />
+              <Skeleton width="100%" height={80} style={{ marginBottom: 8 }} />
+              <Skeleton width="100%" height={80} style={{ marginBottom: 8 }} />
+              <Skeleton width="100%" height={80} style={{ marginBottom: 8 }} />
             </View>
           ) : filteredTransactions.length > 0 ? (
             Object.entries(groupedTransactions).map(([groupTitle, txs]) => (
@@ -188,7 +188,6 @@ export default function HistoryScreen() {
                   <TransactionItem
                     key={transaction.id}
                     transaction={transaction}
-                    onPress={() => {}}
                   />
                 ))}
               </View>

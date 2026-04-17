@@ -7,28 +7,29 @@ import {
   Pressable,
   Animated,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { format } from 'date-fns';
+import { Image } from 'expo-image';
 import { useStore } from '@/store/useStore';
 import { useColors } from '@/hooks/useThemeColor';
 import { Shadows } from '@/constants/Colors';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
 export default function TransactionDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const colors = useColors();
   const { transactions } = useStore();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const transaction = transactions.find((t) => t.id === id);
 
-  const transaction = transactions.find(t => t.id === id);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -44,6 +45,11 @@ export default function TransactionDetailScreen() {
       }),
     ]).start();
   }, []);
+
+  const handleGetHelp = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // TODO: Navigate to support screen
+  };
 
   if (!transaction) {
     return (
@@ -61,6 +67,9 @@ export default function TransactionDetailScreen() {
     );
   }
 
+  // Defensive check: ensure itemsPurchased array exists
+  const items = transaction.itemsPurchased || [];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -68,83 +77,35 @@ export default function TransactionDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Receipt</Text>
-        <Pressable style={styles.shareButton}>
-          <Ionicons name="share-outline" size={24} color={colors.text} />
-        </Pressable>
+        <Text style={[styles.title, { color: colors.text }]}>Receipt</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          {/* Status Card */}
-          <Card variant="elevated" style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: colors.successLight }]}>
-              <Ionicons name="checkmark-circle" size={32} color={colors.success} />
+          {/* Receipt Header */}
+          <Card variant="elevated" style={styles.receiptHeader}>
+            <View style={[styles.statusBadge, { backgroundColor: colors.successLight }]}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <Text style={[styles.statusText, { color: colors.success }]}>Completed</Text>
             </View>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>Payment Successful</Text>
-            <Text style={[styles.statusDate, { color: colors.textSecondary }]}>
-              {format(new Date(transaction.date), 'MMMM d, yyyy • h:mm a')}
+            <Text style={[styles.receiptNumber, { color: colors.textMuted }]}>
+              Receipt #{transaction.receiptNumber}
             </Text>
-            <Badge label={transaction.status} variant="success" size="md" />
-          </Card>
-
-          {/* Amount Card */}
-          <Card variant="outlined" style={styles.amountCard}>
-            <Text style={[styles.amountLabel, { color: colors.textSecondary }]}>Total Amount</Text>
-            <Text style={[styles.amountValue, { color: colors.text }]}>
-              ${transaction.amount.toFixed(2)}
+            <Text style={[styles.receiptDate, { color: colors.textSecondary }]}>
+              {format(new Date(transaction.date), 'EEEE, MMMM d, yyyy • h:mm a')}
             </Text>
-            <View style={styles.pointsEarned}>
-              <Ionicons name="star" size={16} color={colors.primary} />
-              <Text style={[styles.pointsEarnedText, { color: colors.primary }]}>
-                +{transaction.pointsEarned} points earned
-              </Text>
-            </View>
           </Card>
-
-          {/* Items */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Items Purchased</Text>
-            <Card variant="default" padding="none">
-              {transaction.itemsPurchased.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.itemRow,
-                    index !== transaction.itemsPurchased.length - 1 && {
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    },
-                  ]}
-                >
-                  {item.image && (
-                    <Image
-                      source={{ uri: item.image }}
-                      style={styles.itemImage}
-                      contentFit="cover"
-                    />
-                  )}
-                  <View style={styles.itemDetails}>
-                    <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.itemQuantity, { color: colors.textSecondary }]}>
-                      Qty: {item.quantity}
-                    </Text>
-                  </View>
-                  <Text style={[styles.itemPrice, { color: colors.text }]}>
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </Text>
-                </View>
-              ))}
-            </Card>
-          </View>
 
           {/* Store Info */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Store Information</Text>
-            <Card variant="outlined">
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Store Location</Text>
+            <Card variant="default">
               <View style={styles.storeRow}>
-                <Ionicons name="location" size={20} color={colors.primary} />
-                <View style={styles.storeDetails}>
+                <View style={[styles.storeIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name="location" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.storeInfo}>
                   <Text style={[styles.storeName, { color: colors.text }]}>
                     {transaction.storeName}
                   </Text>
@@ -156,45 +117,112 @@ export default function TransactionDetailScreen() {
             </Card>
           </View>
 
-          {/* Receipt Details */}
+          {/* Items Purchased */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Receipt Details</Text>
-            <Card variant="outlined">
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                  Receipt Number
-                </Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>
-                  {transaction.receiptNumber}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Items Purchased</Text>
+            <Card variant="default" padding="none">
+              {items.length > 0 ? (
+                items.map((item, index) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.itemRow,
+                      index !== items.length - 1 && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      },
+                    ]}
+                  >
+                    {item.image ? (
+                      <Image
+                        source={{ uri: item.image }}
+                        style={styles.itemImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.itemImagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                        <Ionicons name="cafe" size={24} color={colors.textMuted} />
+                      </View>
+                    )}
+                    <View style={styles.itemInfo}>
+                      <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.itemQuantity, { color: colors.textMuted }]}>
+                        Qty: {item.quantity}
+                      </Text>
+                    </View>
+                    <Text style={[styles.itemPrice, { color: colors.text }]}>
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.itemRow}>
+                  <Text style={[styles.itemName, { color: colors.textMuted }]}>No items</Text>
+                </View>
+              )}
+            </Card>
+          </View>
+
+          {/* Payment Summary */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Summary</Text>
+            <Card variant="default">
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                  ${transaction.amount.toFixed(2)}
                 </Text>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                  Transaction ID
-                </Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>
-                  {transaction.id.slice(0, 8).toUpperCase()}
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Tax</Text>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>$0.00</Text>
+              </View>
+              <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryTotal, { color: colors.text }]}>Total</Text>
+                <Text style={[styles.summaryTotal, { color: colors.text }]}>
+                  ${transaction.amount.toFixed(2)}
                 </Text>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                  Payment Method
+              <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.pointsRow}>
+                <View style={styles.pointsInfo}>
+                  <Ionicons name="star" size={18} color={colors.primary} />
+                  <Text style={[styles.pointsLabel, { color: colors.textSecondary }]}>
+                    Points Earned
+                  </Text>
+                </View>
+                <Text style={[styles.pointsValue, { color: colors.primary }]}>
+                  +{transaction.pointsEarned}
                 </Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>Visa •••• 4242</Text>
               </View>
             </Card>
           </View>
 
-          {/* Help Section */}
-          <Card variant="filled" style={[styles.helpCard, { backgroundColor: colors.backgroundSecondary }]}>
-            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
-            <Text style={[styles.helpText, { color: colors.textSecondary }]}>
-              Need help with this transaction?
-            </Text>
-            <Pressable>
-              <Text style={[styles.helpLink, { color: colors.primary }]}>Contact Support</Text>
-            </Pressable>
-          </Card>
+          {/* Payment Method */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
+            <Card variant="default">
+              <View style={styles.paymentRow}>
+                <View style={[styles.cardIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="card" size={20} color={colors.text} />
+                </View>
+                <Text style={[styles.paymentText, { color: colors.text }]}>
+                  Visa ending in 4242
+                </Text>
+              </View>
+            </Card>
+          </View>
+
+          {/* Help Button */}
+          <Button
+            title="Need Help?"
+            onPress={handleGetHelp}
+            variant="outline"
+            icon="help-circle-outline"
+            fullWidth
+            style={{ marginTop: 8 }}
+          />
         </Animated.View>
       </ScrollView>
     </View>
@@ -216,136 +244,155 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 20,
     fontWeight: '700',
-  },
-  shareButton: {
-    padding: 8,
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
-  statusCard: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  statusIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  statusTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statusDate: {
-    fontSize: 13,
-    marginBottom: 12,
-  },
-  amountCard: {
+  receiptHeader: {
     alignItems: 'center',
     paddingVertical: 24,
-    marginTop: 16,
+    marginBottom: 24,
   },
-  amountLabel: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  amountValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  pointsEarned: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
   },
-  pointsEarnedText: {
+  statusText: {
     fontSize: 14,
     fontWeight: '600',
   },
+  receiptNumber: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  receiptDate: {
+    fontSize: 14,
+  },
   section: {
-    marginTop: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,
   },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 12,
-  },
-  itemImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  itemQuantity: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   storeRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
-  storeDetails: {
+  storeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storeInfo: {
     flex: 1,
   },
   storeName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    marginBottom: 4,
   },
   storeAddress: {
     fontSize: 13,
-    marginTop: 2,
   },
-  detailRow: {
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+  },
+  itemImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  itemQuantity: {
+    fontSize: 12,
+  },
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryLabel: {
+    fontSize: 14,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  summaryDivider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  summaryTotal: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  pointsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  detailLabel: {
-    fontSize: 13,
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  helpCard: {
+  pointsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 24,
   },
-  helpText: {
-    flex: 1,
-    fontSize: 13,
+  pointsLabel: {
+    fontSize: 14,
   },
-  helpLink: {
-    fontSize: 13,
-    fontWeight: '600',
+  pointsValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,

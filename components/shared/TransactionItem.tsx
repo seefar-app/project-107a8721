@@ -42,8 +42,57 @@ export function TransactionItem({ transaction, onPress }: TransactionItemProps) 
     }
   };
 
-  const firstItem = transaction.itemsPurchased[0];
-  const additionalItems = transaction.itemsPurchased.length - 1;
+  // Defensive check: ensure itemsPurchased array exists
+  const items = transaction.itemsPurchased || [];
+  const firstItem = items[0];
+  const additionalItems = items.length - 1;
+
+  // If no items, show placeholder
+  if (!firstItem) {
+    return (
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Pressable
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={[styles.container, { backgroundColor: colors.card }]}
+        >
+          <View style={[styles.imagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+            <Ionicons name="cafe" size={24} color={colors.textMuted} />
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={[styles.storeName, { color: colors.text }]} numberOfLines={1}>
+                {transaction.storeName}
+              </Text>
+              <Text style={[styles.amount, { color: colors.text }]}>
+                ${transaction.amount.toFixed(2)}
+              </Text>
+            </View>
+
+            <Text style={[styles.items, { color: colors.textSecondary }]} numberOfLines={1}>
+              No items
+            </Text>
+
+            <View style={styles.footer}>
+              <Text style={[styles.date, { color: colors.textMuted }]}>
+                {format(new Date(transaction.date), 'MMM d, h:mm a')}
+              </Text>
+              <View style={styles.points}>
+                <Ionicons name="star" size={12} color={colors.primary} />
+                <Text style={[styles.pointsText, { color: colors.primary }]}>
+                  +{transaction.pointsEarned}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </Pressable>
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
