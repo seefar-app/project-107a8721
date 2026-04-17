@@ -89,7 +89,6 @@ export default function HomeScreen() {
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setShowQR(false);
-        // Would open scanner
       },
       gradient: Gradients.primary,
     },
@@ -161,7 +160,10 @@ export default function HomeScreen() {
               </View>
               <View style={styles.headerActions}>
                 <Pressable
-                  onPress={() => {}}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/notifications');
+                  }}
                   style={styles.notificationButton}
                 >
                   <Ionicons name="notifications-outline" size={24} color="#ffffff" />
@@ -244,7 +246,6 @@ export default function HomeScreen() {
                 <TransactionItem
                   key={transaction.id}
                   transaction={transaction}
-                  onPress={() => {}}
                 />
               ))
             ) : (

@@ -1,17 +1,20 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { Transaction } from '@/types';
 import { useColors } from '@/hooks/useThemeColor';
-import { Badge } from '@/components/ui/Badge';
 
 interface TransactionItemProps {
   transaction: Transaction;
-  onPress: () => void;
+  onPress?: () => void;
 }
 
 export function TransactionItem({ transaction, onPress }: TransactionItemProps) {
+  const router = useRouter();
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -30,33 +33,41 @@ export function TransactionItem({ transaction, onPress }: TransactionItemProps) 
     }).start();
   };
 
-  const getStatusVariant = () => {
-    switch (transaction.status) {
-      case 'completed':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/transaction-detail/${transaction.id}`);
     }
   };
+
+  const firstItem = transaction.itemsPurchased[0];
+  const additionalItems = transaction.itemsPurchased.length - 1;
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <Pressable
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         style={[styles.container, { backgroundColor: colors.card }]}
       >
-        <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }]}>
-          <Ionicons name="receipt-outline" size={20} color={colors.primary} />
-        </View>
+        {firstItem.image ? (
+          <Image
+            source={{ uri: firstItem.image }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.imagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+            <Ionicons name="cafe" size={24} color={colors.textMuted} />
+          </View>
+        )}
 
         <View style={styles.content}>
-          <View style={styles.topRow}>
+          <View style={styles.header}>
             <Text style={[styles.storeName, { color: colors.text }]} numberOfLines={1}>
               {transaction.storeName}
             </Text>
@@ -65,24 +76,21 @@ export function TransactionItem({ transaction, onPress }: TransactionItemProps) 
             </Text>
           </View>
 
-          <View style={styles.bottomRow}>
+          <Text style={[styles.items, { color: colors.textSecondary }]} numberOfLines={1}>
+            {firstItem.name}
+            {additionalItems > 0 && ` +${additionalItems} more`}
+          </Text>
+
+          <View style={styles.footer}>
             <Text style={[styles.date, { color: colors.textMuted }]}>
               {format(new Date(transaction.date), 'MMM d, h:mm a')}
             </Text>
-            <View style={styles.pointsEarned}>
-              <Ionicons name="star" size={12} color={colors.success} />
-              <Text style={[styles.pointsText, { color: colors.success }]}>
+            <View style={styles.points}>
+              <Ionicons name="star" size={12} color={colors.primary} />
+              <Text style={[styles.pointsText, { color: colors.primary }]}>
                 +{transaction.pointsEarned}
               </Text>
             </View>
-          </View>
-
-          <View style={styles.itemsRow}>
-            <Text style={[styles.itemsText, { color: colors.textSecondary }]} numberOfLines={1}>
-              {transaction.itemsPurchased.length} item{transaction.itemsPurchased.length !== 1 ? 's' : ''}
-              {' • '}
-              {transaction.itemsPurchased.map(i => i.name).join(', ')}
-            </Text>
           </View>
         </View>
 
@@ -96,58 +104,61 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
     gap: 12,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+  image: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+  },
+  imagePlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     flex: 1,
   },
-  topRow: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   storeName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     flex: 1,
-    marginRight: 8,
   },
   amount: {
     fontSize: 15,
     fontWeight: '700',
+    marginLeft: 8,
   },
-  bottomRow: {
+  items: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
   },
   date: {
-    fontSize: 12,
+    fontSize: 11,
   },
-  pointsEarned: {
+  points: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
   },
   pointsText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-  },
-  itemsRow: {
-    marginTop: 6,
-  },
-  itemsText: {
-    fontSize: 12,
   },
 });
