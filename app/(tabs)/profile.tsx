@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Pressable,
   Animated,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,6 +21,8 @@ import { Gradients, Shadows } from '@/constants/Colors';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { TIERS, getTierForPoints, getNextTier, getPointsToNextTier } from '@/constants/Tiers';
 
 interface SettingsItem {
@@ -35,7 +39,13 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colors = useColors();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || '');
+  const [editedEmail, setEditedEmail] = useState(user?.email || '');
+  const [editedPhone, setEditedPhone] = useState(user?.phoneNumber || '');
+  const [isSaving, setIsSaving] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -54,6 +64,52 @@ export default function ProfileScreen() {
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setEditedName(user.name);
+      setEditedEmail(user.email);
+      setEditedPhone(user.phoneNumber);
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!editedName.trim() || !editedEmail.trim() || !editedPhone.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!editedEmail.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setIsSaving(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    updateUser({
+      name: editedName,
+      email: editedEmail,
+      phoneNumber: editedPhone,
+    });
+
+    setIsSaving(false);
+    setIsEditing(false);
+    
+    Alert.alert('Success', 'Your profile has been updated');
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setEditedName(user.name);
+      setEditedEmail(user.email);
+      setEditedPhone(user.phoneNumber);
+    }
+    setIsEditing(false);
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -87,7 +143,10 @@ export default function ProfileScreen() {
           id: 'personal',
           icon: 'person-outline',
           label: 'Personal Information',
-          onPress: () => {},
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsEditing(true);
+          },
         },
         {
           id: 'payment',
@@ -100,7 +159,9 @@ export default function ProfileScreen() {
           id: 'notifications',
           icon: 'notifications-outline',
           label: 'Notifications',
-          onPress: () => {},
+          onPress: () => {
+            router.push('/notifications');
+          },
         },
       ],
     },
@@ -180,163 +241,230 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* Header with gradient */}
-        <LinearGradient colors={Gradients.primary} style={styles.headerGradient}>
-          <View style={{ paddingTop: insets.top + 16 }}>
-            <Animated.View
-              style={[
-                styles.profileHeader,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-              ]}
-            >
-              <Avatar source={user.avatar} size="xl" />
-              <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              
-              <View style={styles.tierBadgeContainer}>
-                <Badge
-                  label={currentTier.displayName}
-                  variant="tier"
-                  tierColor={currentTier.color}
-                  icon={currentTier.icon as any}
-                />
-              </View>
-            </Animated.View>
-          </View>
-        </LinearGradient>
-
-        {/* Tier Progress Card */}
-        <View style={styles.tierCardContainer}>
-          <Card variant="elevated" style={styles.tierCard}>
-            <View style={styles.tierCardHeader}>
-              <Text style={[styles.tierCardTitle, { color: colors.text }]}>
-                Your Rewards Status
-              </Text>
-              <Text style={[styles.tierPointsValue, { color: colors.primary }]}>
-                {user.totalPoints.toLocaleString()} pts
-              </Text>
-            </View>
-
-            {nextTier && (
-              <>
-                <View style={styles.tierProgressContainer}>
-                  <View style={[styles.tierProgressBar, { backgroundColor: colors.border }]}>
-                    <View
-                      style={[
-                        styles.tierProgressFill,
-                        {
-                          backgroundColor: currentTier.color,
-                          width: `${Math.min(100, ((user.totalPoints - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.tierLabels}>
-                    <Text style={[styles.tierLabel, { color: colors.textMuted }]}>
-                      {currentTier.displayName}
-                    </Text>
-                    <Text style={[styles.tierLabel, { color: colors.textMuted }]}>
-                      {nextTier.displayName}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={[styles.tierInfoBox, { backgroundColor: colors.backgroundSecondary }]}>
-                  <Ionicons name="trending-up" size={18} color={colors.primary} />
-                  <Text style={[styles.tierInfoText, { color: colors.text }]}>
-                    <Text style={{ fontWeight: '700' }}>{pointsToNext}</Text> more points to {nextTier.displayName}
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {!nextTier && (
-              <View style={[styles.tierInfoBox, { backgroundColor: colors.successLight }]}>
-                <Ionicons name="trophy" size={18} color={colors.success} />
-                <Text style={[styles.tierInfoText, { color: colors.success }]}>
-                  You've reached the highest tier! 🎉
-                </Text>
-              </View>
-            )}
-          </Card>
-        </View>
-
-        {/* Settings Groups */}
-        <Animated.View
-          style={[
-            styles.settingsContainer,
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
         >
-          {settingsGroups.map((group) => (
-            <View key={group.title} style={styles.settingsGroup}>
-              <Text style={[styles.groupTitle, { color: colors.textSecondary }]}>
-                {group.title}
-              </Text>
-              <Card variant="default" padding="none">
-                {group.items.map((item, index) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      item.onPress();
-                    }}
-                    style={({ pressed }) => [
-                      styles.settingsItem,
-                      pressed && { backgroundColor: colors.backgroundSecondary },
-                      index !== group.items.length - 1 && {
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <View style={[
-                      styles.settingsIcon,
-                      { backgroundColor: item.destructive ? colors.errorLight : colors.backgroundSecondary },
-                    ]}>
-                      <Ionicons
-                        name={item.icon}
-                        size={20}
-                        color={item.destructive ? colors.error : colors.primary}
-                      />
-                    </View>
-                    <Text style={[
-                      styles.settingsLabel,
-                      { color: item.destructive ? colors.error : colors.text },
-                    ]}>
-                      {item.label}
-                    </Text>
-                    <View style={styles.settingsRight}>
-                      {item.value && (
-                        <Text style={[styles.settingsValue, { color: colors.textMuted }]}>
-                          {item.value}
-                        </Text>
-                      )}
-                      {item.badge && (
-                        <Badge label={item.badge} variant="info" size="sm" />
-                      )}
-                      {!item.destructive && (
-                        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                      )}
-                    </View>
+          {/* Header with gradient */}
+          <LinearGradient colors={Gradients.primary} style={styles.headerGradient}>
+            <View style={{ paddingTop: insets.top + 16 }}>
+              <Animated.View
+                style={[
+                  styles.profileHeader,
+                  { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+                ]}
+              >
+                <Avatar source={user.avatar} size="xl" />
+                <Text style={styles.userName}>{user.name}</Text>
+                <Text style={styles.userEmail}>{user.email}</Text>
+                
+                <View style={styles.tierBadgeContainer}>
+                  <Badge
+                    label={currentTier.displayName}
+                    variant="tier"
+                    tierColor={currentTier.color}
+                    icon={currentTier.icon as any}
+                  />
+                </View>
+              </Animated.View>
+            </View>
+          </LinearGradient>
+
+          {/* Edit Profile Modal */}
+          {isEditing && (
+            <View style={styles.editSection}>
+              <Card variant="elevated" style={styles.editCard}>
+                <View style={styles.editHeader}>
+                  <Text style={[styles.editTitle, { color: colors.text }]}>
+                    Edit Profile
+                  </Text>
+                  <Pressable onPress={handleCancelEdit}>
+                    <Ionicons name="close" size={24} color={colors.textMuted} />
                   </Pressable>
-                ))}
+                </View>
+
+                <Input
+                  label="Full Name"
+                  value={editedName}
+                  onChangeText={setEditedName}
+                  placeholder="Enter your full name"
+                  leftIcon="person-outline"
+                  containerStyle={styles.inputContainer}
+                />
+
+                <Input
+                  label="Email Address"
+                  value={editedEmail}
+                  onChangeText={setEditedEmail}
+                  placeholder="Enter your email"
+                  leftIcon="mail-outline"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  containerStyle={styles.inputContainer}
+                />
+
+                <Input
+                  label="Phone Number"
+                  value={editedPhone}
+                  onChangeText={setEditedPhone}
+                  placeholder="Enter your phone number"
+                  leftIcon="call-outline"
+                  keyboardType="phone-pad"
+                  containerStyle={styles.inputContainer}
+                />
+
+                <View style={styles.editActions}>
+                  <Button
+                    title="Cancel"
+                    onPress={handleCancelEdit}
+                    variant="outline"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="Save Changes"
+                    onPress={handleSaveProfile}
+                    variant="primary"
+                    loading={isSaving}
+                    style={{ flex: 1 }}
+                  />
+                </View>
               </Card>
             </View>
-          ))}
-        </Animated.View>
+          )}
 
-        {/* App Version */}
-        <Text style={[styles.version, { color: colors.textMuted }]}>
-          Brew Rewards v1.0.0
-        </Text>
-      </ScrollView>
-    </View>
+          {/* Tier Progress Card */}
+          <View style={styles.tierCardContainer}>
+            <Card variant="elevated" style={styles.tierCard}>
+              <View style={styles.tierCardHeader}>
+                <Text style={[styles.tierCardTitle, { color: colors.text }]}>
+                  Your Rewards Status
+                </Text>
+                <Text style={[styles.tierPointsValue, { color: colors.primary }]}>
+                  {user.totalPoints.toLocaleString()} pts
+                </Text>
+              </View>
+
+              {nextTier && (
+                <>
+                  <View style={styles.tierProgressContainer}>
+                    <View style={[styles.tierProgressBar, { backgroundColor: colors.border }]}>
+                      <View
+                        style={[
+                          styles.tierProgressFill,
+                          {
+                            backgroundColor: currentTier.color,
+                            width: `${Math.min(100, ((user.totalPoints - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.tierLabels}>
+                      <Text style={[styles.tierLabel, { color: colors.textMuted }]}>
+                        {currentTier.displayName}
+                      </Text>
+                      <Text style={[styles.tierLabel, { color: colors.textMuted }]}>
+                        {nextTier.displayName}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.tierInfoBox, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Ionicons name="trending-up" size={18} color={colors.primary} />
+                    <Text style={[styles.tierInfoText, { color: colors.text }]}>
+                      <Text style={{ fontWeight: '700' }}>{pointsToNext}</Text> more points to {nextTier.displayName}
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {!nextTier && (
+                <View style={[styles.tierInfoBox, { backgroundColor: colors.successLight }]}>
+                  <Ionicons name="trophy" size={18} color={colors.success} />
+                  <Text style={[styles.tierInfoText, { color: colors.success }]}>
+                    You've reached the highest tier! 🎉
+                  </Text>
+                </View>
+              )}
+            </Card>
+          </View>
+
+          {/* Settings Groups */}
+          <Animated.View
+            style={[
+              styles.settingsContainer,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            {settingsGroups.map((group) => (
+              <View key={group.title} style={styles.settingsGroup}>
+                <Text style={[styles.groupTitle, { color: colors.textSecondary }]}>
+                  {group.title}
+                </Text>
+                <Card variant="default" padding="none">
+                  {group.items.map((item, index) => (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        item.onPress();
+                      }}
+                      style={({ pressed }) => [
+                        styles.settingsItem,
+                        pressed && { backgroundColor: colors.backgroundSecondary },
+                        index !== group.items.length - 1 && {
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={[
+                        styles.settingsIcon,
+                        { backgroundColor: item.destructive ? colors.errorLight : colors.backgroundSecondary },
+                      ]}>
+                        <Ionicons
+                          name={item.icon}
+                          size={20}
+                          color={item.destructive ? colors.error : colors.primary}
+                        />
+                      </View>
+                      <Text style={[
+                        styles.settingsLabel,
+                        { color: item.destructive ? colors.error : colors.text },
+                      ]}>
+                        {item.label}
+                      </Text>
+                      <View style={styles.settingsRight}>
+                        {item.value && (
+                          <Text style={[styles.settingsValue, { color: colors.textMuted }]}>
+                            {item.value}
+                          </Text>
+                        )}
+                        {item.badge && (
+                          <Badge label={item.badge} variant="info" size="sm" />
+                        )}
+                        {!item.destructive && (
+                          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                        )}
+                      </View>
+                    </Pressable>
+                  ))}
+                </Card>
+              </View>
+            ))}
+          </Animated.View>
+
+          {/* App Version */}
+          <Text style={[styles.version, { color: colors.textMuted }]}>
+            Brew Rewards v1.0.0
+          </Text>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -365,6 +493,33 @@ const styles = StyleSheet.create({
   },
   tierBadgeContainer: {
     marginTop: 12,
+  },
+  editSection: {
+    paddingHorizontal: 20,
+    marginTop: -40,
+    marginBottom: 16,
+    zIndex: 10,
+  },
+  editCard: {
+    borderRadius: 20,
+  },
+  editHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  editTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
   },
   tierCardContainer: {
     paddingHorizontal: 20,

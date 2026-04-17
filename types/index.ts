@@ -102,3 +102,28 @@ export interface Notification {
   read: boolean;
   createdAt: Date;
 }
+
+export interface Order {
+  id: string;
+  userId: string;
+  orderNumber: string;
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  status: 'preparing' | 'ready' | 'completed' | 'cancelled';
+  createdAt: Date;
+  storeName: string;
+  storeAddress: string;
+  estimatedReadyTime?: Date;
+}
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  image?: string;
+  customizations?: string[];
+}

@@ -108,6 +108,7 @@ export default function HomeScreen() {
       label: 'Order',
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        router.push('/orders');
       },
       gradient: Gradients.coffee,
     },
