@@ -24,7 +24,9 @@
         "backgroundColor": "#2563eb"
       },
       "package": "com.brewrewards.app",
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -50,6 +52,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "https://qpjxcuymamhqxpbgpryd.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwanhjdXltYW1ocXhwYmdwcnlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NTM4ODAsImV4cCI6MjA5MjAyOTg4MH0.yvgdC97uU9_OznjRHKnMre8krTsB4LPJV9zXdE79qGo"
     }
   }
 }

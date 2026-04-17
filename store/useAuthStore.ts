@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 import { User, TierName } from '@/types';
-
-// React Native compatible UUID generator
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+import { supabase } from '@/lib/supabase';
 
 interface AuthState {
   user: User | null;
@@ -16,11 +8,11 @@ interface AuthState {
   isLoading: boolean;
   authError: string | null;
   
-  login: (phoneNumber: string, pin: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   signup: (data: SignupData) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
   clearError: () => void;
 }
 
@@ -28,20 +20,35 @@ interface SignupData {
   phoneNumber: string;
   email: string;
   name: string;
-  pin: string;
+  password: string;
 }
 
-const mockUser: User = {
-  id: generateUUID(),
-  phoneNumber: '+1 (555) 123-4567',
-  email: 'sarah.johnson@email.com',
-  name: 'Sarah Johnson',
-  avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-  totalPoints: 1847,
-  currentTier: 'gold' as TierName,
-  createdAt: new Date('2023-06-15'),
-  favoriteItems: ['Caramel Macchiato', 'Blueberry Muffin', 'Cold Brew'],
-};
+interface DatabaseUser {
+  id: string;
+  phoneNumber: string | null;
+  email: string;
+  name: string | null;
+  avatar: string | null;
+  totalPoints: number;
+  currentTier: string;
+  createdAt: string;
+  favoriteItems: string[];
+  updated_at: string;
+}
+
+function mapDatabaseUserToUser(dbUser: DatabaseUser): User {
+  return {
+    id: dbUser.id,
+    phoneNumber: dbUser.phoneNumber || '',
+    email: dbUser.email,
+    name: dbUser.name || '',
+    avatar: dbUser.avatar || '',
+    totalPoints: dbUser.totalPoints || 0,
+    currentTier: (dbUser.currentTier || 'bronze') as TierName,
+    createdAt: new Date(dbUser.createdAt),
+    favoriteItems: dbUser.favoriteItems || [],
+  };
+}
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -49,42 +56,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   authError: null,
 
-  login: async (phoneNumber: string, pin: string) => {
+  login: async (email: string, password: string) => {
     set({ isLoading: true, authError: null });
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock validation
-      if (pin.length !== 4) {
-        set({ authError: 'PIN must be 4 digits', isLoading: false });
-        return false;
-      }
-      
-      if (phoneNumber.replace(/\D/g, '').length < 10) {
-        set({ authError: 'Please enter a valid phone number', isLoading: false });
+      if (!email || !password) {
+        set({ authError: 'Please fill in all required fields.', isLoading: false });
         return false;
       }
 
-      // Simulate wrong PIN for demo (PIN: 1234 works)
-      if (pin !== '1234') {
-        set({ authError: 'Invalid PIN. Try 1234 for demo.', isLoading: false });
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        let friendlyMessage = 'Login failed. Please try again.';
+        if (authError.message.includes('Invalid login credentials')) {
+          friendlyMessage = 'Incorrect email or password. Please try again.';
+        } else if (authError.message.includes('Email not confirmed')) {
+          friendlyMessage = 'Please confirm your email before logging in.';
+        }
+        set({ authError: friendlyMessage, isLoading: false });
         return false;
       }
-      
-      set({ 
-        user: mockUser, 
-        isAuthenticated: true, 
-        isLoading: false,
-        authError: null,
-      });
+
+      if (!authData.user) {
+        set({ authError: 'Login failed. Please try again.', isLoading: false });
+        return false;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        set({ authError: 'Failed to load user profile. Please try again.', isLoading: false });
+        return false;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
+      set({ user, isAuthenticated: true, isLoading: false, authError: null });
       return true;
     } catch (error) {
-      set({ 
-        authError: 'Login failed. Please try again.', 
-        isLoading: false 
-      });
+      set({ authError: 'Login failed. Please try again.', isLoading: false });
       return false;
     }
   },
@@ -93,79 +110,177 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, authError: null });
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (data.pin.length !== 4) {
-        set({ authError: 'PIN must be 4 digits', isLoading: false });
-        return false;
-      }
-      
-      if (!data.email.includes('@')) {
-        set({ authError: 'Please enter a valid email address', isLoading: false });
-        return false;
-      }
-      
-      if (data.name.length < 2) {
-        set({ authError: 'Please enter your full name', isLoading: false });
+      if (!data.email || !data.password || !data.name || !data.phoneNumber) {
+        set({ authError: 'Please fill in all required fields.', isLoading: false });
         return false;
       }
 
-      const newUser: User = {
-        id: generateUUID(),
-        phoneNumber: data.phoneNumber,
+      if (!data.email.includes('@')) {
+        set({ authError: 'Please enter a valid email address.', isLoading: false });
+        return false;
+      }
+
+      if (data.name.length < 2) {
+        set({ authError: 'Please enter your full name.', isLoading: false });
+        return false;
+      }
+
+      if (data.password.length < 6) {
+        set({ authError: 'Password must be at least 6 characters.', isLoading: false });
+        return false;
+      }
+
+      const { data: authData, error: signupError } = await supabase.auth.signUp({
         email: data.email,
-        name: data.name,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=2563eb&color=fff&size=200`,
-        totalPoints: 50, // Welcome bonus
-        currentTier: 'bronze',
-        createdAt: new Date(),
-        favoriteItems: [],
-        pin: data.pin,
-      };
-      
-      set({ 
-        user: newUser, 
-        isAuthenticated: true, 
-        isLoading: false,
-        authError: null,
+        password: data.password,
+        options: {
+          data: {
+            phoneNumber: data.phoneNumber,
+            name: data.name,
+            totalPoints: 50,
+            currentTier: 'bronze',
+            favoriteItems: [],
+          },
+        },
       });
+
+      if (signupError) {
+        let friendlyMessage = 'Signup failed. Please try again.';
+        if (signupError.message.includes('already registered')) {
+          friendlyMessage = 'An account with this email already exists.';
+        } else if (signupError.message.includes('Password')) {
+          friendlyMessage = 'Password does not meet requirements.';
+        }
+        set({ authError: friendlyMessage, isLoading: false });
+        return false;
+      }
+
+      if (!authData.user) {
+        set({ authError: 'Signup failed. Please try again.', isLoading: false });
+        return false;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        set({ authError: 'Failed to create user profile. Please try again.', isLoading: false });
+        return false;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
+      set({ user, isAuthenticated: true, isLoading: false, authError: null });
       return true;
     } catch (error) {
-      set({ 
-        authError: 'Signup failed. Please try again.', 
-        isLoading: false 
-      });
+      set({ authError: 'Signup failed. Please try again.', isLoading: false });
       return false;
     }
   },
 
-  logout: () => {
-    set({ 
-      user: null, 
-      isAuthenticated: false, 
-      isLoading: false,
-      authError: null,
-    });
+  logout: async () => {
+    set({ isLoading: true, authError: null });
+    
+    try {
+      await supabase.auth.signOut();
+      set({ 
+        user: null, 
+        isAuthenticated: false, 
+        isLoading: false,
+        authError: null,
+      });
+    } catch (error) {
+      set({ 
+        authError: 'Logout failed. Please try again.', 
+        isLoading: false 
+      });
+    }
   },
 
   initializeAuth: async () => {
     set({ isLoading: true });
     
     try {
-      // Simulate checking stored credentials
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo, start logged out
-      set({ isLoading: false, isAuthenticated: false });
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !sessionData.session) {
+        set({ isLoading: false, isAuthenticated: false, user: null });
+        return;
+      }
+
+      const userId = sessionData.session.user.id;
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        set({ isLoading: false, isAuthenticated: false, user: null });
+        return;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
+      set({ user, isAuthenticated: true, isLoading: false });
+
+      // Set up auth state listener
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          set({ user: null, isAuthenticated: false });
+        } else if (event === 'SIGNED_IN' && session.user) {
+          const { data: updatedProfile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (updatedProfile) {
+            const updatedUser = mapDatabaseUserToUser(updatedProfile);
+            set({ user: updatedUser, isAuthenticated: true });
+          }
+        }
+      });
+
+      return () => {
+        authListener?.subscription.unsubscribe();
+      };
     } catch (error) {
-      set({ isLoading: false, isAuthenticated: false });
+      set({ isLoading: false, isAuthenticated: false, user: null });
     }
   },
 
-  updateUser: (updates: Partial<User>) => {
+  updateUser: async (updates: Partial<User>) => {
     const { user } = get();
-    if (user) {
-      set({ user: { ...user, ...updates } });
+    if (!user) return;
+
+    try {
+      const updateData: Partial<DatabaseUser> = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.phoneNumber !== undefined) updateData.phoneNumber = updates.phoneNumber;
+      if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
+      if (updates.favoriteItems !== undefined) updateData.favoriteItems = updates.favoriteItems;
+
+      const { data: updatedProfile, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        set({ authError: 'Failed to update profile. Please try again.' });
+        return;
+      }
+
+      if (updatedProfile) {
+        const updatedUser = mapDatabaseUserToUser(updatedProfile);
+        set({ user: updatedUser, authError: null });
+      }
+    } catch (error) {
+      set({ authError: 'Failed to update profile. Please try again.' });
     }
   },
 
