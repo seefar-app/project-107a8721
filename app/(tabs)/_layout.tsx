@@ -35,7 +35,11 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused && [styles.activeTab, { backgroundColor: colors.primaryLight }]}>
+            <View style={[
+              styles.iconWrapper,
+              focused && styles.activeTab,
+              focused && { backgroundColor: colors.primaryLight }
+            ]}>
               <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
             </View>
           ),
@@ -46,7 +50,11 @@ export default function TabsLayout() {
         options={{
           title: 'Rewards',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused && [styles.activeTab, { backgroundColor: colors.primaryLight }]}>
+            <View style={[
+              styles.iconWrapper,
+              focused && styles.activeTab,
+              focused && { backgroundColor: colors.primaryLight }
+            ]}>
               <Ionicons name={focused ? 'gift' : 'gift-outline'} size={24} color={color} />
             </View>
           ),
@@ -57,7 +65,11 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused && [styles.activeTab, { backgroundColor: colors.primaryLight }]}>
+            <View style={[
+              styles.iconWrapper,
+              focused && styles.activeTab,
+              focused && { backgroundColor: colors.primaryLight }
+            ]}>
               <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={24} color={color} />
             </View>
           ),
@@ -68,7 +80,11 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused && [styles.activeTab, { backgroundColor: colors.primaryLight }]}>
+            <View style={[
+              styles.iconWrapper,
+              focused && styles.activeTab,
+              focused && { backgroundColor: colors.primaryLight }
+            ]}>
               <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
             </View>
           ),
@@ -79,6 +95,10 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  iconWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   activeTab: {
     paddingHorizontal: 16,
     paddingVertical: 8,
